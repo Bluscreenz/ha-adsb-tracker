@@ -13,7 +13,6 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv
 
 from .const import (
@@ -41,7 +40,7 @@ class ADSBTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> config_entries.ConfigFlowResult:
         errors: dict[str, str] = {}
 
         if self._async_current_entries():
@@ -71,19 +70,22 @@ class ADSBTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> "ADSBTrackerOptionsFlow":
-        return ADSBTrackerOptionsFlow(config_entry)
+        return ADSBTrackerOptionsFlow()
 
 
 class ADSBTrackerOptionsFlow(config_entries.OptionsFlow):
     """Manage the list of tracked tail numbers from the Home Assistant UI."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
-        self._aircraft: list[dict[str, str]] = list(
-            config_entry.options.get(CONF_AIRCRAFT, [])
-        )
+    def __init__(self) -> None:
+        # self.config_entry is provided automatically by the base class.
+        self._aircraft: list[dict[str, str]] | None = None
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    def _load_aircraft(self) -> list[dict[str, str]]:
+        if self._aircraft is None:
+            self._aircraft = list(self.config_entry.options.get(CONF_AIRCRAFT, []))
+        return self._aircraft
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> config_entries.ConfigFlowResult:
         return self.async_show_menu(
             step_id="init",
             menu_options=["add_aircraft", "remove_aircraft"],
@@ -91,16 +93,17 @@ class ADSBTrackerOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_add_aircraft(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         errors: dict[str, str] = {}
+        aircraft = self._load_aircraft()
         if user_input is not None:
             tail = user_input[CONF_TAIL_NUMBER].strip().upper()
             name = user_input.get(CONF_NAME, "").strip() or tail
-            if any(a[CONF_TAIL_NUMBER].upper() == tail for a in self._aircraft):
+            if any(a[CONF_TAIL_NUMBER].upper() == tail for a in aircraft):
                 errors["base"] = "already_exists"
             else:
-                self._aircraft.append({CONF_TAIL_NUMBER: tail, CONF_NAME: name})
-                return self.async_create_entry(title="", data={CONF_AIRCRAFT: self._aircraft})
+                aircraft.append({CONF_TAIL_NUMBER: tail, CONF_NAME: name})
+                return self.async_create_entry(title="", data={CONF_AIRCRAFT: aircraft})
 
         schema = vol.Schema(
             {
@@ -112,18 +115,19 @@ class ADSBTrackerOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_remove_aircraft(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        if not self._aircraft:
+    ) -> config_entries.ConfigFlowResult:
+        aircraft = self._load_aircraft()
+        if not aircraft:
             return self.async_abort(reason="no_aircraft")
 
         options = {
             a[CONF_TAIL_NUMBER]: f"{a.get(CONF_NAME, a[CONF_TAIL_NUMBER])} ({a[CONF_TAIL_NUMBER]})"
-            for a in self._aircraft
+            for a in aircraft
         }
 
         if user_input is not None:
             selected = set(user_input["tail_numbers"])
-            self._aircraft = [a for a in self._aircraft if a[CONF_TAIL_NUMBER] not in selected]
+            self._aircraft = [a for a in aircraft if a[CONF_TAIL_NUMBER] not in selected]
             return self.async_create_entry(title="", data={CONF_AIRCRAFT: self._aircraft})
 
         schema = vol.Schema(
