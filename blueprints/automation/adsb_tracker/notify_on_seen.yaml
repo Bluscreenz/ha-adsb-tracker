@@ -1,0 +1,52 @@
+blueprint:
+  name: "ADS-B Tracker: Notify when aircraft is seen"
+  description: >-
+    Sends a Home Assistant companion app (mobile) notification the moment
+    a tracked aircraft's binary sensor turns on. Import this blueprint,
+    pick the aircraft's binary sensor and your phone's notify service,
+    and you're done.
+  domain: automation
+  input:
+    aircraft_sensor:
+      name: Aircraft binary sensor
+      description: >-
+        The "aircraft seen" binary sensor created by the ADS-B Tracker
+        integration (e.g. binary_sensor.n12345).
+      selector:
+        entity:
+          domain: binary_sensor
+          integration: adsb_tracker
+    notify_service:
+      name: Notify service
+      description: >-
+        Your phone's notify service, e.g. notify.mobile_app_johns_iphone.
+        Find it under Settings > Devices & Services > your phone.
+      selector:
+        text: {}
+
+trigger:
+  - platform: state
+    entity_id: !input aircraft_sensor
+    to: "on"
+
+variables:
+  sensor_entity: !input aircraft_sensor
+
+action:
+  - service: !input notify_service
+    data:
+      title: "\u2708\ufe0f Aircraft spotted"
+      message: >-
+        {{ state_attr(sensor_entity, 'tail_number') }}
+        {% if state_attr(sensor_entity, 'flight') %}({{ state_attr(sensor_entity, 'flight') }}){% endif %}
+        is now being received.
+        {% if state_attr(sensor_entity, 'altitude_ft') %}Altitude: {{ state_attr(sensor_entity, 'altitude_ft') }} ft.{% endif %}
+        {% if state_attr(sensor_entity, 'ground_speed_kt') %}Speed: {{ state_attr(sensor_entity, 'ground_speed_kt') }} kt.{% endif %}
+        {% if state_attr(sensor_entity, 'distance_nm') %}Distance: {{ state_attr(sensor_entity, 'distance_nm') }} nm.{% endif %}
+      data:
+        push:
+          sound: default
+        tag: "adsb-{{ state_attr(sensor_entity, 'tail_number') }}"
+
+mode: parallel
+max: 10

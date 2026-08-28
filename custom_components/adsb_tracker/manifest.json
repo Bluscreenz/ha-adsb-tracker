@@ -1,0 +1,12 @@
+{
+  "domain": "adsb_tracker",
+  "name": "ADS-B Aircraft Tracker",
+  "codeowners": ["@yourusername"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/yourusername/ha-adsb-tracker",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/yourusername/ha-adsb-tracker/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}

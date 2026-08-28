@@ -1,0 +1,51 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to local ADS-B receiver",
+        "description": "Enter the connection details for your local ADS-B server (dump1090 / readsb / tar1090 / ultrafeeder style aircraft.json feed).",
+        "data": {
+          "host": "Host / IP address",
+          "port": "Port",
+          "path": "JSON path",
+          "scan_interval": "Poll interval (seconds)",
+          "receiver_latitude": "Receiver latitude (optional, enables distance)",
+          "receiver_longitude": "Receiver longitude (optional, enables distance)"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Only one ADS-B Tracker connection is allowed. Manage tracked aircraft from the integration's Configure menu."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Manage tracked aircraft",
+        "menu_options": {
+          "add_aircraft": "Add a tail number",
+          "remove_aircraft": "Remove a tail number"
+        }
+      },
+      "add_aircraft": {
+        "title": "Add a tail number to track",
+        "data": {
+          "tail_number": "Tail number / registration (e.g. N12345)",
+          "name": "Friendly name (optional)"
+        }
+      },
+      "remove_aircraft": {
+        "title": "Remove tracked tail numbers",
+        "data": {
+          "tail_numbers": "Select aircraft to remove"
+        }
+      }
+    },
+    "error": {
+      "already_exists": "That tail number is already being tracked."
+    },
+    "abort": {
+      "no_aircraft": "There are no tracked aircraft to remove."
+    }
+  }
+}
